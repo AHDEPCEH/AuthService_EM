@@ -1,3 +1,4 @@
+import datetime
 from django.db import models
 from django.db.models import CharField, BooleanField, DateTimeField, ForeignKey
 
@@ -47,3 +48,23 @@ class User(models.Model):
 
     def __str__(self):
         return f"{self.name}, with email: {self.email}"
+
+class RevokeToken(models.Model):
+    jti = CharField(max_length=50, unique=True)
+    user_id = ForeignKey(User, on_delete=models.CASCADE)
+    revoked_at = DateTimeField(auto_now_add=True)
+    expired_at = DateTimeField()
+
+    class Meta:
+        db_table = "revoke_tokens"
+        indexes = [
+            models.Index(fields=['jti']),
+            models.Index(fields=['expired_at']),
+        ]
+
+    @classmethod
+    def clear_table(cls):
+        cls.objects.filter(expired_at__lt=datetime.datetime.now(datetime.UTC)).delete()
+
+    def __str__(self):
+        return f"Revoked token {self.jti} for user {self.user_id}"
